@@ -1,3 +1,4 @@
+using baseball_game.Services.Simulator;
 using Microsoft.AspNetCore.Mvc;
 
 namespace baseball_game.Controllers;
@@ -12,10 +13,12 @@ public class WeatherForecastController : ControllerBase
     };
 
     private readonly ILogger<WeatherForecastController> _logger;
+    private readonly GameSimulatorSerivce _gameSimulatorSerivce;
 
-    public WeatherForecastController(ILogger<WeatherForecastController> logger)
+    public WeatherForecastController(ILogger<WeatherForecastController> logger, GameSimulatorSerivce gameSimulatorSerivce)
     {
         _logger = logger;
+        _gameSimulatorSerivce = gameSimulatorSerivce;
     }
 
     [HttpGet(Name = "GetWeatherForecast")]
@@ -28,5 +31,12 @@ public class WeatherForecastController : ControllerBase
                 Summary = Summaries[Random.Shared.Next(Summaries.Length)]
             })
             .ToArray();
+    }
+
+    [HttpGet("simulate", Name = "GetSimulate")]
+    public ActionResult GetSimulate()
+    {
+        _gameSimulatorSerivce.RunSimulation();
+        return Ok();
     }
 }
