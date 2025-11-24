@@ -16,6 +16,7 @@ builder.Services.AddSingleton<PlayerSerivce>();
 builder.Services.AddSingleton<PlayerSerivce>();
 builder.Services.AddSingleton<GameSimulatorSerivce>();
 builder.Services.AddScoped<SeasonService>();
+builder.Services.AddScoped<StatisticsService>();
 
 builder.Services.AddDbContext<simulator_console.Data.GameDbContext>(options =>
     options.UseSqlite("Data Source=baseball.db"), ServiceLifetime.Singleton); 

@@ -75,9 +75,9 @@
 
 | SRS 屬性 | 實作屬性 | 狀態 | 備註 |
 |---------|---------|------|------|
-| Contact | Contract | ⚠️ 命名不符 | 應為 Contact |
+| Contact | Contact | ✅ 已修正 | 已從 Contract 修正 |
 | Power | Power | ✅ | |
-| Vision | Discipline | ⚠️ 命名不符 | Discipline 類似但不完全等同 |
+| Vision | Vision | ✅ 已修正 | 已從 Discipline 修正 |
 | Speed | Speed | ✅ | |
 | Fielding | Fielding | ✅ | |
 | Arm | Arm | ✅ | |
@@ -89,7 +89,7 @@
 |---------|---------|------|------|
 | Velocity | Velocity | ✅ | |
 | Control | Control | ✅ | |
-| Breaking | Movement | ⚠️ 命名不符 | Movement 類似變化球 |
+| Breaking | Breaking | ✅ 已修正 | 已從 Movement 修正 |
 | Stamina | Stamina | ✅ | |
 
 **其他屬性：**
@@ -113,7 +113,7 @@
 - 受傷機制
 - 潛力成長曲線
 - 特殊能力系統
-- 屬性命名需與 SRS 統一
+- Reaction 屬性（反應力）
 
 ---
 
@@ -168,21 +168,31 @@
 
 | 需求編號 | 需求描述 | 狀態 | 完成度 | 備註 |
 |---------|---------|------|--------|------|
-| F5.1 | 球員紀錄：AVG, HR, RBI, ERA, WHIP | ❌ 未完成 | 0% | 缺少統計計算 |
-| F5.2 | 進階數據：OPS, BABIP（可選） | ❌ 未完成 | 0% | 未實作 |
+| F5.1 | 球員紀錄：AVG, HR, RBI, ERA, WHIP | ✅ 已完成 | 100% | 已建立統計表與計算邏輯 |
+| F5.2 | 進階數據：OPS, BABIP（可選） | ⚠️ 部分完成 | 50% | OPS 已實作，BABIP 未實作 |
 | F5.3 | 球隊紀錄：勝敗、排名 | ❌ 未完成 | 0% | 未實作 |
 | F5.4 | 系統自動運算年度獎項 | ❌ 未完成 | 0% | 未實作 |
 
 **已實作檔案：**
 - `Models/GameRecord.cs` - 比賽紀錄
 - `Models/GameLog.cs` - 比賽日誌
+- `Models/HittingStats.cs` - 打者統計模型 ✨ 新增
+- `Models/PitchingStats.cs` - 投手統計模型 ✨ 新增
+- `Services/StatisticsService.cs` - 統計服務 ✨ 新增
+- `Controllers/StatisticsController.cs` - 統計 API ✨ 新增
+
+**已完成功能：** ✨
+- ✅ 打者統計表（AVG, OBP, SLG, OPS, HR, RBI）
+- ✅ 投手統計表（ERA, WHIP, K/9, BB/9, W-L）
+- ✅ 統計自動計算
+- ✅ 排行榜查詢 API
+- ✅ 球員賽季統計查詢
 
 **缺少功能：**
-- 球員個人統計表
-- 即時統計計算
-- 歷史紀錄查詢
-- 排行榜系統
+- 球隊勝敗統計與排名
+- BABIP 進階數據
 - 獎項評選算法
+- 統計整合至比賽模擬（需在 GameSimulatorService 中呼叫）
 
 ---
 
@@ -239,9 +249,58 @@
 |------|---------|---------|------|
 | 後端框架 | ASP.NET Core | ASP.NET Core (.NET 9) | ✅ |
 | 資料庫 | SQLite / PostgreSQL | SQLite + EF Core | ✅ |
-| 前端 | Blazor WebAssembly | ❌ 未實作 | ❌ |
-| 即時通訊 | - | SignalR | ✅ 額外實作 |
-| UI 框架 | Tailwind / Radzen | ❌ 未實作 | ❌ |
+| 前端 | Blazor WebAssembly | React | ⚠️ 規劃中 |
+| 即時通訊 | - | SignalR | ✅ 已實作 |
+| UI 框架 | Tailwind / Radzen | Tailwind CSS (推薦) | ⚠️ 規劃中 |
+
+### 前端技術選擇說明
+
+**React + SignalR 的優勢：**
+- ✅ **生態系統豐富** - npm 套件多，社群支援強
+- ✅ **開發體驗佳** - Hot Reload、開發工具成熟
+- ✅ **SignalR 客戶端** - `@microsoft/signalr` 官方支援完整
+- ✅ **彈性高** - 可自由選擇狀態管理（Redux、Zustand）
+- ✅ **效能優異** - Virtual DOM 與現代優化技術
+- ✅ **UI 框架選擇多** - Material-UI、Ant Design、Chakra UI、Tailwind
+
+**與 Blazor WebAssembly 比較：**
+
+| 特性 | React | Blazor WebAssembly |
+|------|-------|-------------------|
+| 語言 | JavaScript/TypeScript | C# |
+| 生態系統 | 極大 | 較小 |
+| 學習曲線 | 平緩 | 對 .NET 開發者友好 |
+| 效能 | 優秀 | 優秀（初始載入較慢） |
+| 與後端整合 | REST API + SignalR | 原生 .NET |
+| 開發工具 | 成熟完整 | 持續改進中 |
+
+**推薦技術棧：**
+```
+前端：React 18+ + TypeScript
+狀態管理：Zustand 或 Redux Toolkit
+UI 框架：Tailwind CSS + shadcn/ui 或 Material-UI
+即時通訊：@microsoft/signalr
+打包工具：Vite
+```
+
+**SignalR 整合範例：**
+```typescript
+// SignalR 連接設定
+import * as signalR from "@microsoft/signalr";
+
+const connection = new signalR.HubConnectionBuilder()
+  .withUrl("https://localhost:7xxx/gameHub")
+  .withAutomaticReconnect()
+  .build();
+
+// 監聽比賽更新
+connection.on("ReceiveGameUpdate", (update) => {
+  console.log("Game Update:", update);
+  // 更新 React state
+});
+
+await connection.start();
+```
 
 ---
 
@@ -251,12 +310,12 @@
 
 | SRS 規劃資料表 | 實作狀況 | 狀態 | 備註 |
 |--------------|---------|------|------|
-| Players | ✅ 已完成 | 100% | 缺少部分欄位（Age, Potential, Health, Fatigue） |
+| Players | ✅ 已完成 | 100% | 屬性命名已修正，缺少欄位（Age, Potential, Health, Fatigue） |
 | Teams | ✅ 已完成 | 100% | |
 | Season | ✅ 已完成 | 100% | |
 | Games | ✅ 已完成 | 100% | 名稱為 GameRecords |
-| Stats_Hitting | ❌ 未完成 | 0% | 缺少打者統計表 |
-| Stats_Pitching | ❌ 未完成 | 0% | 缺少投手統計表 |
+| Stats_Hitting | ✅ 已完成 | 100% | ✨ 已新增完整打者統計表 |
+| Stats_Pitching | ✅ 已完成 | 100% | ✨ 已新增完整投手統計表 |
 | Schedules | ✅ 已完成 | 100% | SRS 未規劃但已實作 |
 
 ---
@@ -301,36 +360,38 @@
 |------|--------|------|
 | Season Mode | 25% | 🟡 進行中 |
 | Team Management | 25% | 🟡 進行中 |
-| Player System | 30% | 🟡 進行中 |
+| Player System | 40% | 🟡 進行中 |
 | Match Engine | 60% | 🟡 進行中 |
-| Statistics System | 0% | 🔴 未開始 |
+| Statistics System | 70% | 🟢 接近完成 |
 | Save System | 75% | 🟢 接近完成 |
 | UI / UX | 5% | 🔴 未開始 |
-| Database | 70% | 🟢 接近完成 |
+| Database | 90% | 🟢 接近完成 |
 
 ### 整體專案完成度
 
 ```
-██████████░░░░░░░░░░ 35%
+█████████████░░░░░░░ 50%
 ```
 
-**已完成功能（35%）：**
-- 基本比賽模擬引擎
-- 資料庫架構
-- 賽季賽程生成
-- 球員與球隊資料模型
-- REST API 基礎
-- SignalR 即時通訊
+**已完成功能（50%）：**
+- ✅ 基本比賽模擬引擎
+- ✅ 資料庫架構（含統計表）
+- ✅ 賽季賽程生成
+- ✅ 球員與球隊資料模型（屬性已修正）
+- ✅ REST API 基礎
+- ✅ SignalR 即時通訊
+- ✅ 統計系統（打者/投手統計、排行榜）✨ 新增
 
-**進行中功能（40%）：**
-- 完整比賽邏輯（守備、疲勞、AI）
-- 球員成長與訓練系統
-- 陣容編輯功能
+**進行中功能（30%）：**
+- ⚠️ 統計系統與比賽整合
+- ⚠️ 完整比賽邏輯（守備、疲勞、AI）
+- ⚠️ 球員成長與訓練系統
+- ⚠️ 陣容編輯功能
 
-**未開始功能（25%）：**
-- 統計系統
-- 前端 UI
-- 排名與獎項系統
+**未開始功能（20%）：**
+- ❌ 前端 UI（React）
+- ❌ 球隊排名系統
+- ❌ 年度獎項系統
 
 ---
 
@@ -383,28 +444,40 @@
 
 ### ⚠️ 需要修正的問題
 
-1. **屬性命名不一致**
-   - `Contract` 應為 `Contact`
-   - `Discipline` 應為 `Vision`
-   - `Movement` 應為 `Breaking`
+1. ~~**屬性命名不一致**~~ ✅ **已修正**
+   - ~~`Contract` 應為 `Contact`~~ ✅ 已修正
+   - ~~`Discipline` 應為 `Vision`~~ ✅ 已修正
+   - ~~`Movement` 應為 `Breaking`~~ ✅ 已修正
 
 2. **缺少重要屬性**
    - 球員：Age, Potential, Health, Fatigue
-   - 投手：當前體力狀態
+   - 投手：當前體力狀態（Fatigue）
+   - 守備：Reaction（反應力）
 
 3. **比賽邏輯不完整**
    - 無守備失誤
    - 無投手疲勞系統
    - 無延長賽
 
-4. **資料庫結構**
-   - 缺少 Stats_Hitting 和 Stats_Pitching 表
+4. ~~**資料庫結構**~~ ✅ **已修正**
+   - ~~缺少 Stats_Hitting 和 Stats_Pitching 表~~ ✅ 已新增
+
+5. **統計系統整合** ⚠️ **待完成**
+   - 需在 GameSimulatorService 中整合 StatisticsService
+   - 比賽結束後自動更新球員統計
 
 ---
 
 ## 版本歷程
 
-- **v0.1** (目前版本)
+- **v0.2** (目前版本) - 2025-11-24 ✨
+  - ✅ 修正球員屬性命名（Contact, Vision, Breaking）
+  - ✅ 新增統計系統（HittingStats, PitchingStats）
+  - ✅ 新增統計服務與 API
+  - ✅ 資料庫結構完善
+  - ⚠️ 統計系統待整合至比賽模擬
+
+- **v0.1** (2025-11-24 前)
   - 基本比賽模擬
   - 資料庫架構
   - REST API

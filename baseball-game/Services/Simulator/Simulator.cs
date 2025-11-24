@@ -18,15 +18,15 @@ public class Simulator
         
         // 攻擊方
         double attack =
-            batter.Contract * 0.5 +
+            batter.Contact * 0.5 +
             batter.Power * 0.3 +
-            batter.Discipline * 0.2;
+            batter.Vision * 0.2;
         
         // 防禦方
         double defense =
             pitcher.Control * 0.3 +
             pitcher.Velocity * 0.4 +
-            pitcher.Movement * 0.3;
+            pitcher.Breaking * 0.3;
 
         double result = attack - defense + RandomNoise();
 
@@ -70,7 +70,7 @@ public class Simulator
     private bool CheckWalk(Player hitter, Player pitcher)
     {
         double walkFactor =
-            hitter.Discipline * 0.6 - // 打者會不會選球
+            hitter.Vision * 0.6 - // 打者會不會選球
             pitcher.Control * 0.5 + // 投手控球好不好
             RandomNoise(8); // 變數
         

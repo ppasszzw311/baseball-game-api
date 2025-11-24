@@ -10,15 +10,15 @@ public class Player
     public int Type { get; set; } // 0: Hitter, 1: Pitcher
     
     // 打者能力
-    public int Contract { get; set; } = 30;
+    public int Contact { get; set; } = 30;
     public int Power { get; set; } = 15;
-    public int Discipline { get; set; } = 20;
+    public int Vision { get; set; } = 20;
     
     // 投手能力
     public int Stamina { get; set; } = 30;
     public int Control { get; set; } = 20;
     public int Velocity { get; set; } = 15;
-    public int Movement { get; set; } = 14;
+    public int Breaking { get; set; } = 14;
     
     // 跑壘能力
     public int Speed { get; set; }

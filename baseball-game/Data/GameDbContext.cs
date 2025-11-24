@@ -15,11 +15,15 @@ public class GameDbContext : DbContext
     public DbSet<Season> Seasons { get; set; }
     public DbSet<TeamEntity> Teams { get; set; }
     public DbSet<Schedule> Schedules { get; set; }
+    public DbSet<HittingStats> HittingStats { get; set; }
+    public DbSet<PitchingStats> PitchingStats { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Player>().ToTable("Players");
         modelBuilder.Entity<GameRecord>().ToTable("GameRecords");
         modelBuilder.Entity<GameLog>().ToTable("GameLogs");
+        modelBuilder.Entity<HittingStats>().ToTable("Stats_Hitting");
+        modelBuilder.Entity<PitchingStats>().ToTable("Stats_Pitching");
     }
 }
