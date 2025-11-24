@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS Players (
     TeamId INTEGER NOT NULL,
     Name TEXT NOT NULL,
     Type INTEGER NOT NULL, -- 0: Hitter, 1: Pitcher
+    Role INTEGER DEFAULT 0, -- 0: Starter, 1: MiddleReliever, 2: SetupMan, 3: Closer
     -- Hitting attributes
     Contact INTEGER DEFAULT 30,
     Power INTEGER DEFAULT 15,

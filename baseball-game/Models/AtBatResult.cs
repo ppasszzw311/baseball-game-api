@@ -20,8 +20,8 @@ public enum AtBatType
 public class AtBatResult
 {
     public AtBatType ResultType { get; set; } // 結果類型
-    public Player Pitcher { get; set; } // 投手
-    public Player Hitter { get; set; } // 打者
+    public required Player Pitcher { get; set; } // 投手
+    public required Player Hitter { get; set; } // 打者
     public bool IsOut => ResultType == AtBatType.Out || ResultType == AtBatType.StrikeOut; // 是否出局
     public bool IsHit => ResultType == AtBatType.Single || ResultType == AtBatType.Double || ResultType == AtBatType.Triple || ResultType == AtBatType.HomeRun; // 是否安打
     public bool IsWalk => ResultType == AtBatType.Walk; // 是否保送

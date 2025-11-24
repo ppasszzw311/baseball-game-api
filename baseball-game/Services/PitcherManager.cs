@@ -44,7 +44,10 @@ public class PitcherManager
         
         // 更新體力（不低於0）
         pitcher.CurrentStamina = Math.Max(0, pitcher.CurrentStamina - staminaCost);
-        pitcher.PitchCount++;
+        
+        // 更新投球數（使用實際投球數：好球 + 壞球）
+        int actualPitches = result.PitchCount.Strikes + result.PitchCount.Balls;
+        pitcher.PitchCount += actualPitches;
         
         // 更新連續被安打
         if (result.ResultType == AtBatType.Single || 

@@ -26,5 +26,16 @@ INSERT INTO Players (TeamId, Name, Type, Contact, Power, Vision) VALUES (2, 'Hom
 INSERT INTO Players (TeamId, Name, Type, Contact, Power, Vision) VALUES (2, 'Home Batter 9', 0, 50, 45, 75);
 
 -- Pitchers
-INSERT INTO Players (TeamId, Name, Type, Stamina, Control, Breaking, Velocity) VALUES (1, 'Away Pitcher', 1, 80, 80, 80, 95);
-INSERT INTO Players (TeamId, Name, Type, Stamina, Control, Breaking, Velocity) VALUES (2, 'Home Pitcher', 1, 85, 85, 85, 98);
+-- Away Team Pitchers (TeamId = 1)
+INSERT INTO Players (TeamId, Name, Type, Role, Stamina, Control, Breaking, Velocity) VALUES (1, 'Away Starter', 1, 0, 80, 80, 80, 95);
+INSERT INTO Players (TeamId, Name, Type, Role, Stamina, Control, Breaking, Velocity) VALUES (1, 'Away Middle Reliever 1', 1, 1, 60, 70, 75, 85);
+INSERT INTO Players (TeamId, Name, Type, Role, Stamina, Control, Breaking, Velocity) VALUES (1, 'Away Middle Reliever 2', 1, 1, 65, 72, 73, 83);
+INSERT INTO Players (TeamId, Name, Type, Role, Stamina, Control, Breaking, Velocity) VALUES (1, 'Away Setup Man', 1, 2, 55, 85, 80, 90);
+INSERT INTO Players (TeamId, Name, Type, Role, Stamina, Control, Breaking, Velocity) VALUES (1, 'Away Closer', 1, 3, 50, 90, 85, 95);
+
+-- Home Team Pitchers (TeamId = 2)
+INSERT INTO Players (TeamId, Name, Type, Role, Stamina, Control, Breaking, Velocity) VALUES (2, 'Home Starter', 1, 0, 85, 85, 85, 98);
+INSERT INTO Players (TeamId, Name, Type, Role, Stamina, Control, Breaking, Velocity) VALUES (2, 'Home Middle Reliever 1', 1, 1, 62, 73, 77, 87);
+INSERT INTO Players (TeamId, Name, Type, Role, Stamina, Control, Breaking, Velocity) VALUES (2, 'Home Middle Reliever 2', 1, 1, 68, 75, 75, 85);
+INSERT INTO Players (TeamId, Name, Type, Role, Stamina, Control, Breaking, Velocity) VALUES (2, 'Home Setup Man', 1, 2, 58, 88, 82, 92);
+INSERT INTO Players (TeamId, Name, Type, Role, Stamina, Control, Breaking, Velocity) VALUES (2, 'Home Closer', 1, 3, 52, 92, 88, 98);

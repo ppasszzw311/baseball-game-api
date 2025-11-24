@@ -57,15 +57,15 @@ public class PlayerSerivce
             player.Type = 1;
             player.Stamina += (int)GetPictorRandomNumber();
             player.Control += (int)GetPictorRandomNumber();
-            player.Movement += (int)GetPictorRandomNumber();
+            player.Breaking += (int)GetPictorRandomNumber();
             player.Velocity += (int)GetPictorRandomNumber();
         }
         else
         {
             player.Type = 0;
-            player.Contract += (int)GetRandomNumber();
+            player.Contact += (int)GetRandomNumber();
             player.Power += (int)GetRandomNumber();
-            player.Discipline += (int)GetRandomNumber();
+            player.Vision += (int)GetRandomNumber();
         }
         
         return player;
