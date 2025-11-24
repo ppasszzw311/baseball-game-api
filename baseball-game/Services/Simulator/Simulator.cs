@@ -1,6 +1,6 @@
-using baseball_game.Models;
+using simulator_console.Models;
 
-namespace baseball_game.Services.Simulator;
+namespace simulator_console.Services.Simulator;
 
 // 模擬投打對決的狀況
 public class Simulator
@@ -8,8 +8,14 @@ public class Simulator
     private readonly Random _random = new();
     public AtBatResult SimulateAtBat(Player batter, Player pitcher)
     {
+        var atBatResult = new AtBatResult { Hitter = batter, Pitcher = pitcher };
+
         if (CheckWalk(batter, pitcher))
-            return AtBatResult.Walk;
+        {
+            atBatResult.ResultType = AtBatType.Walk;
+            return atBatResult;
+        }
+        
         // 攻擊方
         double attack =
             batter.Contract * 0.5 +
@@ -24,26 +30,25 @@ public class Simulator
 
         double result = attack - defense + RandomNoise();
 
-        AtBatResult atBatResult;
         switch (result)
         {
             case < -20:
-                atBatResult = AtBatResult.StrikeOut;
+                atBatResult.ResultType = AtBatType.StrikeOut;
                 break;
             case < -10:
-                atBatResult = AtBatResult.Out;
+                atBatResult.ResultType = AtBatType.Out;
                 break;
             case < 10:
-                atBatResult = AtBatResult.Single;
+                atBatResult.ResultType = AtBatType.Single;
                 break;
             case < 20:
-                atBatResult = AtBatResult.Double;
+                atBatResult.ResultType = AtBatType.Double;
                 break;
             case < 30:
-                atBatResult = AtBatResult.Triple;
+                atBatResult.ResultType = AtBatType.Triple;
                 break;
             default:
-                atBatResult = AtBatResult.HomeRun;
+                atBatResult.ResultType = AtBatType.HomeRun;
                 break;
         }
         return atBatResult;
@@ -71,9 +76,4 @@ public class Simulator
         
         return walkFactor > 20;
     }
-    
-    // 投打的隨機性
-    // control 投進好球帶的機率
-    // 好球 - 分辨得出來嗎 Discipline 
-    //       
 }

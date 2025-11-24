@@ -1,4 +1,4 @@
-namespace baseball_game.Models;
+namespace simulator_console.Models;
 
 public class Player
 {

@@ -1,6 +1,12 @@
 @baseball_game_HostAddress = http://localhost:5293
 
-GET {{baseball_game_HostAddress}}/weatherforecast/
+### Simulate Full Game (Instant Result)
+POST {{baseball_game_HostAddress}}/api/game/simulate
 Accept: application/json
 
 ###
+
+### SignalR Hub (WebSocket)
+# Note: Use a WebSocket client to connect to {{baseball_game_HostAddress}}/gameHub
+# Send: {"protocol":"json","version":1} to handshake.
+# Invoke: "StartGame", "PauseGame", "ResumeGame", "RestartGame"

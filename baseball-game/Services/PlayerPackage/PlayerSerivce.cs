@@ -1,14 +1,29 @@
-using baseball_game.Models;
-namespace baseball_game.Services.PlayerPackage;
+using simulator_console.Models;
+namespace simulator_console.Services.PlayerPackage;
 
 public class PlayerSerivce
 {
+    public List<Player> CreateTeam(int teamId, string teamName)
+    {
+        var roster = new List<Player>();
+        for (int i = 0; i < 9; i++)
+        {
+            var batter = GetFatePlayer(PlayerType.hitter);
+            batter.PlayerId = i + 1;
+            batter.TeamId = teamId;
+            batter.Name = $"{teamName} Batter {i + 1}";
+            roster.Add(batter);
+        }
+        return roster;
+    }
+
     // demo 用
     public Player GetFatePlayer(PlayerType  type)
     {
         var player = new Player();
         if (type == PlayerType.pictor)
         {
+            player.Name = "Pitcher";
             player.Stamina += (int)GetPictorRandomNumber();
             player.Control += (int)GetPictorRandomNumber();
             player.Movement += (int)GetPictorRandomNumber();
@@ -36,10 +51,4 @@ public class PlayerSerivce
         var random = new Random();
         return random.NextDouble() * 20;
     }
-}
-
-public enum PlayerType
-{
-    pictor,
-    hitter
 }
