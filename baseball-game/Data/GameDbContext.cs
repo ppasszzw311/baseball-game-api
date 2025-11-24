@@ -12,6 +12,9 @@ public class GameDbContext : DbContext
     public DbSet<Player> Players { get; set; }
     public DbSet<GameRecord> GameRecords { get; set; }
     public DbSet<GameLog> GameLogs { get; set; }
+    public DbSet<Season> Seasons { get; set; }
+    public DbSet<TeamEntity> Teams { get; set; }
+    public DbSet<Schedule> Schedules { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

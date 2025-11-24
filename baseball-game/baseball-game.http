@@ -16,3 +16,33 @@ Accept: application/json
 # Note: Use a WebSocket client to connect to {{baseball_game_HostAddress}}/gameHub
 # Send: {"protocol":"json","version":1} to handshake.
 # Invoke: "StartGame", "PauseGame", "ResumeGame", "RestartGame"
+
+###
+
+### Start New Season
+# @name startSeason
+POST {{baseball_game_HostAddress}}/api/season
+Content-Type: application/json
+
+2024
+
+### Get Season Details
+@seasonId = {{startSeason.response.body.id}}
+GET {{baseball_game_HostAddress}}/api/season/{{seasonId}}
+Accept: application/json
+
+### Get Season Schedule
+GET {{baseball_game_HostAddress}}/api/season/{{seasonId}}/schedule
+Accept: application/json
+
+### List All Teams
+GET {{baseball_game_HostAddress}}/api/team
+Accept: application/json
+
+### Get Team Details
+GET {{baseball_game_HostAddress}}/api/team/1
+Accept: application/json
+
+### Get Team Roster
+GET {{baseball_game_HostAddress}}/api/team/1/roster
+Accept: application/json

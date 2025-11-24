@@ -3,14 +3,24 @@ CREATE TABLE IF NOT EXISTS Players (
     TeamId INTEGER NOT NULL,
     Name TEXT NOT NULL,
     Type INTEGER NOT NULL, -- 0: Hitter, 1: Pitcher
-    -- Attributes
-    Stamina INTEGER DEFAULT 0,
-    Control INTEGER DEFAULT 0,
-    Movement INTEGER DEFAULT 0,
-    Velocity INTEGER DEFAULT 0,
-    Contract INTEGER DEFAULT 0,
-    Power INTEGER DEFAULT 0,
-    Discipline INTEGER DEFAULT 0
+    -- Hitting attributes
+    Contract INTEGER DEFAULT 30,
+    Power INTEGER DEFAULT 15,
+    Discipline INTEGER DEFAULT 20,
+    -- Pitching attributes
+    Stamina INTEGER DEFAULT 30,
+    Control INTEGER DEFAULT 20,
+    Velocity INTEGER DEFAULT 15,
+    Movement INTEGER DEFAULT 14,
+    -- Base running
+    Speed INTEGER DEFAULT 0,
+    BaseRunning INTEGER DEFAULT 0,
+    -- Fielding
+    Fielding INTEGER DEFAULT 0,
+    Arm INTEGER DEFAULT 0,
+    Position INTEGER DEFAULT 0,
+    -- Experience
+    Experience INTEGER DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS GameRecords (
@@ -24,6 +34,33 @@ CREATE TABLE IF NOT EXISTS GameRecords (
 CREATE TABLE IF NOT EXISTS GameLogs (
     Id INTEGER PRIMARY KEY AUTOINCREMENT,
     GameId INTEGER NOT NULL,
-    LogMessage TEXT NOT NULL,
-    FOREIGN KEY(GameId) REFERENCES GameRecords(Id)
+    LogMessage TEXT,
+    FOREIGN KEY (GameId) REFERENCES GameRecords(Id)
+);
+
+CREATE TABLE IF NOT EXISTS Seasons (
+    Id TEXT PRIMARY KEY,
+    Year INTEGER NOT NULL,
+    CurrentDay INTEGER NOT NULL,
+    CreatedAt TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS Teams (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    Name TEXT NOT NULL,
+    Abbreviation TEXT NOT NULL,
+    Color TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS Schedules (
+    Id TEXT PRIMARY KEY,
+    SeasonId TEXT NOT NULL,
+    Day INTEGER NOT NULL,
+    HomeTeamId INTEGER NOT NULL,
+    AwayTeamId INTEGER NOT NULL,
+    IsPlayed INTEGER NOT NULL,
+    GameRecordId INTEGER,
+    FOREIGN KEY (SeasonId) REFERENCES Seasons(Id),
+    FOREIGN KEY (HomeTeamId) REFERENCES Teams(Id),
+    FOREIGN KEY (AwayTeamId) REFERENCES Teams(Id)
 );

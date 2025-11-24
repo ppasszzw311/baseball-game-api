@@ -1,7 +1,9 @@
 using simulator_console.Services.PlayerPackage;
 using simulator_console.Services.Simulator;
 using simulator_console.Hubs;
+using simulator_console.Hubs;
 using Microsoft.EntityFrameworkCore;
+using simulator_console.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,7 +13,9 @@ builder.Services.AddControllers();
 builder.Services.AddSignalR();
 
 builder.Services.AddSingleton<PlayerSerivce>();
+builder.Services.AddSingleton<PlayerSerivce>();
 builder.Services.AddSingleton<GameSimulatorSerivce>();
+builder.Services.AddScoped<SeasonService>();
 
 builder.Services.AddDbContext<simulator_console.Data.GameDbContext>(options =>
     options.UseSqlite("Data Source=baseball.db"), ServiceLifetime.Singleton); 
