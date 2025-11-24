@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Hosting;
 using simulator_console.Hubs;
 using simulator_console.Models;
 using simulator_console.Services.PlayerPackage;
+using simulator_console.Data;
 
 namespace simulator_console.Services.Simulator;
 
@@ -10,18 +12,28 @@ public class GameSimulatorSerivce
     private readonly PlayerSerivce _playerSerivce;
     private readonly Simulator _simulator;
     private readonly IHubContext<GameHub> _hubContext;
+    private readonly GameDbContext _dbContext;
     private GameState _gameState;
     
     private bool _isPaused = false;
     private bool _isSimulationRunning = false;
     private CancellationTokenSource? _cancellationTokenSource;
+    private readonly IHostApplicationLifetime _appLifetime;
 
-    public GameSimulatorSerivce(PlayerSerivce playerSerivce, IHubContext<GameHub> hubContext)
+    public GameSimulatorSerivce(PlayerSerivce playerSerivce, IHubContext<GameHub> hubContext, GameDbContext dbContext, IHostApplicationLifetime appLifetime)
     {
         _playerSerivce = playerSerivce;
         _hubContext = hubContext;
+        _dbContext = dbContext;
         _simulator = new Simulator();
         _gameState = new GameState();
+        _appLifetime = appLifetime;
+        _appLifetime.ApplicationStopping.Register(OnShutdown);
+    }
+
+    private void OnShutdown()
+    {
+        _cancellationTokenSource?.Cancel();
     }
 
     // --- API Mode: Full Simulation ---
@@ -49,13 +61,16 @@ public class GameSimulatorSerivce
         logs.Add("--- GAME OVER ---");
         logs.Add($"Final Score: Away {_gameState.AwayScore} - Home {_gameState.HomeScore}");
 
-        return new GameResult
+        var result = new GameResult
         {
             HomeScore = _gameState.HomeScore,
             AwayScore = _gameState.AwayScore,
             Winner = _gameState.HomeScore > _gameState.AwayScore ? "Home" : "Away",
             GameLogs = logs
         };
+
+        SaveGameResult(result);
+        return result;
     }
 
     // --- SignalR Mode: Interactive Simulation ---
@@ -113,6 +128,15 @@ public class GameSimulatorSerivce
             if (!token.IsCancellationRequested)
             {
                 await SendGameUpdate("GAME OVER");
+                // Save result for interactive game too
+                var result = new GameResult
+                {
+                    HomeScore = _gameState.HomeScore,
+                    AwayScore = _gameState.AwayScore,
+                    Winner = _gameState.HomeScore > _gameState.AwayScore ? "Home" : "Away",
+                    GameLogs = new List<string> { "Interactive Game Finished" } // We don't have full logs here easily unless we tracked them
+                };
+                SaveGameResult(result);
             }
         }
         catch (OperationCanceledException)
@@ -130,8 +154,41 @@ public class GameSimulatorSerivce
         _gameState = new GameState(); // Reset state
         _gameState.AwayTeamRoster = _playerSerivce.CreateTeam(1, "Away");
         _gameState.HomeTeamRoster = _playerSerivce.CreateTeam(2, "Home");
-        _gameState.AwayTeamPitcher = _playerSerivce.GetFatePlayer(PlayerType.pictor);
-        _gameState.HomeTeamPitcher = _playerSerivce.GetFatePlayer(PlayerType.pictor);
+        _gameState.AwayTeamPitcher = _playerSerivce.GetPitcherForTeam(1);
+        _gameState.HomeTeamPitcher = _playerSerivce.GetPitcherForTeam(2);
+    }
+
+    private void SaveGameResult(GameResult result)
+    {
+        try
+        {
+            var record = new GameRecord
+            {
+                HomeScore = result.HomeScore,
+                AwayScore = result.AwayScore,
+                Winner = result.Winner,
+                PlayedAt = DateTime.Now
+            };
+            _dbContext.GameRecords.Add(record);
+            _dbContext.SaveChanges(); // Save to get Id
+
+            if (result.GameLogs != null)
+            {
+                foreach (var log in result.GameLogs)
+                {
+                    _dbContext.GameLogs.Add(new GameLog
+                    {
+                        GameId = record.Id,
+                        LogMessage = log
+                    });
+                }
+                _dbContext.SaveChanges();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving game result: {ex.Message}");
+        }
     }
 
     // --- Sync Logic (for API) ---
@@ -314,3 +371,4 @@ public class GameSimulatorSerivce
         await _hubContext.Clients.All.SendAsync("ReceiveGameUpdate", update);
     }
 }
+

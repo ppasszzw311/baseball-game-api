@@ -2,9 +2,12 @@ namespace simulator_console.Models;
 
 public class Player
 {
+    [System.ComponentModel.DataAnnotations.Key]
+    [System.ComponentModel.DataAnnotations.Schema.Column("Id")]
     public int PlayerId { get; set; }
     public string Name { get; set; } = string.Empty;
     public int TeamId { get; set; }
+    public int Type { get; set; } // 0: Hitter, 1: Pitcher
     
     // 打者能力
     public int Contract { get; set; } = 30;
@@ -28,6 +31,4 @@ public class Player
     // 經驗
     public int Experience { get; set; }
     
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
 }

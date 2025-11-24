@@ -1,15 +1,35 @@
 using simulator_console.Models;
+using simulator_console.Data;
+
 namespace simulator_console.Services.PlayerPackage;
 
 public class PlayerSerivce
 {
+    private readonly GameDbContext _context;
+
+    public PlayerSerivce(GameDbContext context)
+    {
+        _context = context;
+    }
+
     public List<Player> CreateTeam(int teamId, string teamName)
     {
-        var roster = new List<Player>();
+        // Try to fetch from DB
+        var roster = _context.Players
+            .Where(p => p.TeamId == teamId && p.Type == 0) // 0 for Hitter
+            .ToList();
+
+        if (roster.Any())
+        {
+            return roster;
+        }
+
+        // Fallback: Create fake data if DB is empty (or user hasn't seeded)
+        roster = new List<Player>();
         for (int i = 0; i < 9; i++)
         {
             var batter = GetFatePlayer(PlayerType.hitter);
-            batter.PlayerId = i + 1;
+            batter.PlayerId = i + 1 + (teamId * 100); // Simple ID generation for fake data
             batter.TeamId = teamId;
             batter.Name = $"{teamName} Batter {i + 1}";
             roster.Add(batter);
@@ -17,13 +37,24 @@ public class PlayerSerivce
         return roster;
     }
 
-    // demo 用
-    public Player GetFatePlayer(PlayerType  type)
+    public Player GetFatePlayer(PlayerType type)
     {
+        // For Pitchers, we might want to fetch from DB too if available
+        if (type == PlayerType.pictor)
+        {
+            // Try to find any pitcher
+            var pitcher = _context.Players.FirstOrDefault(p => p.Type == 1);
+            if (pitcher != null)
+            {
+                return pitcher;
+            }
+        }
+
         var player = new Player();
         if (type == PlayerType.pictor)
         {
             player.Name = "Pitcher";
+            player.Type = 1;
             player.Stamina += (int)GetPictorRandomNumber();
             player.Control += (int)GetPictorRandomNumber();
             player.Movement += (int)GetPictorRandomNumber();
@@ -31,6 +62,7 @@ public class PlayerSerivce
         }
         else
         {
+            player.Type = 0;
             player.Contract += (int)GetRandomNumber();
             player.Power += (int)GetRandomNumber();
             player.Discipline += (int)GetRandomNumber();
@@ -39,6 +71,21 @@ public class PlayerSerivce
         return player;
     }
     
+    // Helper method to get a pitcher for a specific team from DB
+    public Player GetPitcherForTeam(int teamId)
+    {
+         var pitcher = _context.Players
+            .FirstOrDefault(p => p.TeamId == teamId && p.Type == 1);
+        
+        if (pitcher != null) return pitcher;
+
+        // Fallback
+        var p = GetFatePlayer(PlayerType.pictor);
+        p.TeamId = teamId;
+        p.Name = $"Pitcher Team {teamId}";
+        return p;
+    }
+
     // 幫選手的初始素質加碼
     private double GetRandomNumber()
     {

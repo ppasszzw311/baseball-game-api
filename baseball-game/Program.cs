@@ -1,6 +1,7 @@
 using simulator_console.Services.PlayerPackage;
 using simulator_console.Services.Simulator;
 using simulator_console.Hubs;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,13 @@ builder.Services.AddSignalR();
 
 builder.Services.AddSingleton<PlayerSerivce>();
 builder.Services.AddSingleton<GameSimulatorSerivce>();
+
+builder.Services.AddDbContext<simulator_console.Data.GameDbContext>(options =>
+    options.UseSqlite("Data Source=baseball.db"), ServiceLifetime.Singleton); 
+// Note: Using Singleton DbContext because GameSimulatorService is Singleton. 
+// Ideally GameSimulatorService should be Scoped, but for this simulation loop it's Singleton.
+// We must ensure DbContext is also Singleton or use a ScopeFactory.
+// Given the simplicity, Singleton DbContext with SQLite is acceptable for this single-user demo.
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddEndpointsApiExplorer();
