@@ -22,10 +22,36 @@ public class GameState
 
     public int HomeTeamBatterIndex { get; set; } = 0;
     public int AwayTeamBatterIndex { get; set; } = 0;
+    
+    // 投手狀態追蹤
+    public int HomeTeamPitcherPitchCount { get; set; } = 0;
+    public int AwayTeamPitcherPitchCount { get; set; } = 0;
+    public double HomeTeamPitcherStamina { get; set; } = 100.0;
+    public double AwayTeamPitcherStamina { get; set; } = 100.0;
+    
+    // 牛棚管理
+    public List<Player> HomeTeamBullpen { get; set; } = new();
+    public List<Player> AwayTeamBullpen { get; set; } = new();
+    
+    // 本局失分追蹤
+    public int HomeTeamRunsAllowedThisInning { get; set; } = 0;
+    public int AwayTeamRunsAllowedThisInning { get; set; } = 0;
+    
+    // 累計失分
+    public int HomeTeamRunsAllowed { get; set; } = 0;
+    public int AwayTeamRunsAllowed { get; set; } = 0;
+    
+    // 換投歷史
+    public List<PitcherChange> PitcherChanges { get; set; } = new();
 
     public void ResetForNewHalfInning()
     {
         Outs = 0;
         Bases = new Player?[4];
+        // 重置本局失分
+        if (IsTopInning)
+            HomeTeamRunsAllowedThisInning = 0;
+        else
+            AwayTeamRunsAllowedThisInning = 0;
     }
 }

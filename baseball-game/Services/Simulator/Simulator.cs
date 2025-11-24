@@ -6,11 +6,21 @@ namespace simulator_console.Services.Simulator;
 public class Simulator
 {
     private readonly Random _random = new();
-    public AtBatResult SimulateAtBat(Player batter, Player pitcher)
+    
+    public AtBatResult SimulateAtBat(Player batter, Player pitcher, PitcherManager? pitcherManager = null)
     {
+        // 如果提供了 PitcherManager，應用疲勞效果
+        var effectivePitcher = pitcherManager != null 
+            ? pitcherManager.ApplyFatigueEffect(pitcher) 
+            : pitcher;
+        
+        var effectivePitcher = pitcherManager != null 
+            ? pitcherManager.ApplyFatigueEffect(pitcher) 
+            : pitcher;
+        
         var atBatResult = new AtBatResult { Hitter = batter, Pitcher = pitcher };
 
-        if (CheckWalk(batter, pitcher))
+        if (CheckWalk(batter, effectivePitcher))
         {
             atBatResult.ResultType = AtBatType.Walk;
             return atBatResult;
@@ -22,11 +32,11 @@ public class Simulator
             batter.Power * 0.3 +
             batter.Vision * 0.2;
         
-        // 防禦方
+        // 防禦方（使用疲勞後的能力值）
         double defense =
-            pitcher.Control * 0.3 +
-            pitcher.Velocity * 0.4 +
-            pitcher.Breaking * 0.3;
+            effectivePitcher.Control * 0.3 +
+            effectivePitcher.Velocity * 0.4 +
+            effectivePitcher.Breaking * 0.3;
 
         double result = attack - defense + RandomNoise();
 

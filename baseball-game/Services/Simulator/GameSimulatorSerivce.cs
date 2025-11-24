@@ -13,6 +13,7 @@ public class GameSimulatorSerivce
     private readonly Simulator _simulator;
     private readonly IHubContext<GameHub> _hubContext;
     private readonly GameDbContext _dbContext;
+    private readonly PitcherManager _pitcherManager;
     private GameState _gameState;
     
     private bool _isPaused = false;
@@ -26,6 +27,7 @@ public class GameSimulatorSerivce
         _hubContext = hubContext;
         _dbContext = dbContext;
         _simulator = new Simulator();
+        _pitcherManager = new PitcherManager();
         _gameState = new GameState();
         _appLifetime = appLifetime;
         _appLifetime.ApplicationStopping.Register(OnShutdown);
@@ -156,6 +158,22 @@ public class GameSimulatorSerivce
         _gameState.HomeTeamRoster = _playerSerivce.CreateTeam(2, "Home");
         _gameState.AwayTeamPitcher = _playerSerivce.GetPitcherForTeam(1);
         _gameState.HomeTeamPitcher = _playerSerivce.GetPitcherForTeam(2);
+        
+        // 初始化投手體力
+        _pitcherManager.InitializePitcher(_gameState.AwayTeamPitcher);
+        _pitcherManager.InitializePitcher(_gameState.HomeTeamPitcher);
+        
+        // 初始化牛棚（載入後援投手）
+        _gameState.AwayTeamBullpen = GetBullpenPitchers(_gameState.AwayTeamRoster);
+        _gameState.HomeTeamBullpen = GetBullpenPitchers(_gameState.HomeTeamRoster);
+    }
+    
+    private List<Player> GetBullpenPitchers(List<Player> roster)
+    {
+        return roster
+            .Where(p => p.Type == 1) // 投手
+            .Where(p => p.Role != (int)PitcherRole.Starter) // 非先發
+            .ToList();
     }
 
     private void SaveGameResult(GameResult result)
@@ -194,6 +212,9 @@ public class GameSimulatorSerivce
     // --- Sync Logic (for API) ---
     private void RunHalfInningSync(List<string> logs)
     {
+        // 半局開始前檢查是否需要換投
+        CheckAndChangePitcher(logs);
+        
         _gameState.ResetForNewHalfInning();
         string currentBattingTeamName = _gameState.IsTopInning ? "Away" : "Home";
         logs.Add($"\n--- Inning: {_gameState.CurrentInning} ({(_gameState.IsTopInning ? "Top" : "Bottom")}), Batting: {currentBattingTeamName} ---");
@@ -201,17 +222,97 @@ public class GameSimulatorSerivce
         while (_gameState.Outs < 3)
         {
             var (batter, pitcher) = GetCurrentMatchup();
-            var result = _simulator.SimulateAtBat(batter, pitcher);
+            int basesOccupied = CountBasesOccupied();
             
-            logs.Add($"Batter {batter.Name} vs Pitcher {pitcher.Name}... Result: {result.ResultType}");
+            // 使用 PitcherManager 進行對決（會應用疲勞效果）
+            var result = _simulator.SimulateAtBat(batter, pitcher, _pitcherManager);
+            
+            logs.Add($"Batter {batter.Name} vs Pitcher {pitcher.Name} (體力:{pitcher.CurrentStamina:F1}%, 投球數:{pitcher.PitchCount})... Result: {result.ResultType}");
+            
+            // 更新投手體力
+            _pitcherManager.UpdateStamina(pitcher, result, basesOccupied);
+            
             ProcessAtBatResult(result, logs);
             AdvanceBatterIndex();
+            
+            // 檢查是否需要緊急換投
+            var decision = _pitcherManager.ShouldChangePitcher(pitcher, _gameState);
+            if (decision.ShouldChange && decision.Priority <= 2)  // 高優先級立即換投
+            {
+                ChangePitcher(logs, decision);
+            }
+        }
+    }
+    
+    private int CountBasesOccupied()
+    {
+        int count = 0;
+        for (int i = 1; i <= 3; i++)
+        {
+            if (_gameState.Bases[i] != null) count++;
+        }
+        return count;
+    }
+    
+    private void CheckAndChangePitcher(List<string> logs)
+    {
+        var currentPitcher = _gameState.IsTopInning ? _gameState.HomeTeamPitcher : _gameState.AwayTeamPitcher;
+        var decision = _pitcherManager.ShouldChangePitcher(currentPitcher, _gameState);
+        
+        if (decision.ShouldChange)
+        {
+            ChangePitcher(logs, decision);
+        }
+    }
+    
+    private void ChangePitcher(List<string> logs, PitcherChangeDecision decision)
+    {
+        bool isHomeTeam = !_gameState.IsTopInning;
+        var bullpen = isHomeTeam ? _gameState.HomeTeamBullpen : _gameState.AwayTeamBullpen;
+        var oldPitcher = isHomeTeam ? _gameState.HomeTeamPitcher : _gameState.AwayTeamPitcher;
+        
+        var newPitcher = _pitcherManager.SelectReliever(bullpen, _gameState);
+        
+        if (newPitcher != null)
+        {
+            // 記錄換投
+            var change = new PitcherChange
+            {
+                Inning = _gameState.CurrentInning,
+                IsTopInning = _gameState.IsTopInning,
+                OldPitcherName = oldPitcher.Name,
+                NewPitcherName = newPitcher.Name,
+                Reason = decision.Description
+            };
+            _gameState.PitcherChanges.Add(change);
+            
+            // 執行換投
+            if (isHomeTeam)
+                _gameState.HomeTeamPitcher = newPitcher;
+            else
+                _gameState.AwayTeamPitcher = newPitcher;
+            
+            // 初始化新投手
+            _pitcherManager.InitializePitcher(newPitcher);
+            
+            // 從牛棚移除
+            bullpen.Remove(newPitcher);
+            
+            // 記錄日誌
+            logs.Add($"🔄 換投：{oldPitcher.Name} → {newPitcher.Name} ({decision.Description})");
+        }
+        else
+        {
+            logs.Add($"⚠️ 牛棚無可用投手，繼續使用 {oldPitcher.Name}");
         }
     }
 
     // --- Async Logic (for SignalR) ---
     private async Task RunHalfInningAsync(CancellationToken token)
     {
+        // 半局開始前檢查是否需要換投
+        await CheckAndChangePitcherAsync(token);
+        
         _gameState.ResetForNewHalfInning();
         await SendGameUpdate($"Inning Start: {_gameState.CurrentInning} ({(_gameState.IsTopInning ? "Top" : "Bottom")})");
 
@@ -220,13 +321,80 @@ public class GameSimulatorSerivce
             while (_isPaused) await Task.Delay(500, token);
 
             var (batter, pitcher) = GetCurrentMatchup();
-            var result = _simulator.SimulateAtBat(batter, pitcher);
+            int basesOccupied = CountBasesOccupied();
+            
+            // 使用 PitcherManager 進行對決（會應用疲勞效果）
+            var result = _simulator.SimulateAtBat(batter, pitcher, _pitcherManager);
+            
+            // 更新投手體力
+            _pitcherManager.UpdateStamina(pitcher, result, basesOccupied);
 
             ProcessAtBatResult(result, null); // No logs needed for SignalR, just state update
             AdvanceBatterIndex();
 
-            await SendGameUpdate($"Batter: {batter.Name}, Result: {result.ResultType}");
+            await SendGameUpdate($"Batter: {batter.Name} vs Pitcher: {pitcher.Name} (體力:{pitcher.CurrentStamina:F1}%, 投球數:{pitcher.PitchCount}), Result: {result.ResultType}");
+            
+            // 檢查是否需要緊急換投
+            var decision = _pitcherManager.ShouldChangePitcher(pitcher, _gameState);
+            if (decision.ShouldChange && decision.Priority <= 2)  // 高優先級立即換投
+            {
+                await ChangePitcherAsync(decision, token);
+            }
+            
             await Task.Delay(1000, token); // Delay for visual effect
+        }
+    }
+    
+    private async Task CheckAndChangePitcherAsync(CancellationToken token)
+    {
+        var currentPitcher = _gameState.IsTopInning ? _gameState.HomeTeamPitcher : _gameState.AwayTeamPitcher;
+        var decision = _pitcherManager.ShouldChangePitcher(currentPitcher, _gameState);
+        
+        if (decision.ShouldChange)
+        {
+            await ChangePitcherAsync(decision, token);
+        }
+    }
+    
+    private async Task ChangePitcherAsync(PitcherChangeDecision decision, CancellationToken token)
+    {
+        bool isHomeTeam = !_gameState.IsTopInning;
+        var bullpen = isHomeTeam ? _gameState.HomeTeamBullpen : _gameState.AwayTeamBullpen;
+        var oldPitcher = isHomeTeam ? _gameState.HomeTeamPitcher : _gameState.AwayTeamPitcher;
+        
+        var newPitcher = _pitcherManager.SelectReliever(bullpen, _gameState);
+        
+        if (newPitcher != null)
+        {
+            // 記錄換投
+            var change = new PitcherChange
+            {
+                Inning = _gameState.CurrentInning,
+                IsTopInning = _gameState.IsTopInning,
+                OldPitcherName = oldPitcher.Name,
+                NewPitcherName = newPitcher.Name,
+                Reason = decision.Description
+            };
+            _gameState.PitcherChanges.Add(change);
+            
+            // 執行換投
+            if (isHomeTeam)
+                _gameState.HomeTeamPitcher = newPitcher;
+            else
+                _gameState.AwayTeamPitcher = newPitcher;
+            
+            // 初始化新投手
+            _pitcherManager.InitializePitcher(newPitcher);
+            
+            // 從牛棚移除
+            bullpen.Remove(newPitcher);
+            
+            // 通知換投
+            await SendGameUpdate($"🔄 換投：{oldPitcher.Name} → {newPitcher.Name} ({decision.Description})");
+        }
+        else
+        {
+            await SendGameUpdate($"⚠️ 牛棚無可用投手，繼續使用 {oldPitcher.Name}");
         }
     }
 

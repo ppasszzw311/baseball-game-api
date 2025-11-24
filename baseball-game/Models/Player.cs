@@ -31,4 +31,16 @@ public class Player
     // 經驗
     public int Experience { get; set; }
     
+    // 投手角色分類
+    public int Role { get; set; } = 0;  // 0:先發 1:中繼 2:佈局 3:終結者
+    
+    // 投手即時狀態（不存資料庫，僅在比賽中使用）
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double CurrentStamina { get; set; } = 100.0;  // 當前體力 (0-100)
+    
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public int PitchCount { get; set; } = 0;  // 本場投球數
+    
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public int ConsecutiveHitsAllowed { get; set; } = 0;  // 連續被安打數
 }
