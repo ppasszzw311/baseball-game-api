@@ -14,6 +14,7 @@ public class GameSimulatorSerivce
     private readonly IHubContext<GameHub> _hubContext;
     private readonly GameDbContext _dbContext;
     private readonly PitcherManager _pitcherManager;
+    private readonly DefenseManager _defenseManager;
     private readonly StatisticsService _statsService;
     private GameState _gameState;
     
@@ -34,6 +35,7 @@ public class GameSimulatorSerivce
         _statsService = statsService;
         _simulator = new Simulator();
         _pitcherManager = new PitcherManager();
+        _defenseManager = new DefenseManager();
         _gameState = new GameState();
         _appLifetime = appLifetime;
         _appLifetime.ApplicationStopping.Register(OnShutdown);
@@ -247,7 +249,22 @@ public class GameSimulatorSerivce
             // 使用 PitcherManager 進行對決（會應用疲勞效果）
             var result = _simulator.SimulateAtBat(batter, pitcher, _pitcherManager);
             
-            logs.Add($"Batter {batter.Name} vs Pitcher {pitcher.Name} (體力:{pitcher.CurrentStamina:F1}%, 投球數:{pitcher.PitchCount})... Result: {result.ResultType}");
+            // 如果有擊球出去（IsBallInPlay），進行守備判定
+            if (result.IsBallInPlay)
+            {
+                var defenders = _gameState.IsTopInning ? _gameState.HomeTeamRoster : _gameState.AwayTeamRoster;
+                var defenseResult = _defenseManager.ProcessDefense(result.Quality, batter, defenders, pitcher);
+                
+                // 更新結果
+                result.ResultType = defenseResult.FinalResult;
+                
+                logs.Add($"Batter {batter.Name} vs Pitcher {pitcher.Name} (體力:{pitcher.CurrentStamina:F1}%, 投球數:{pitcher.PitchCount})");
+                logs.Add($"  {defenseResult.Description} -> {result.ResultType}");
+            }
+            else
+            {
+                logs.Add($"Batter {batter.Name} vs Pitcher {pitcher.Name} (體力:{pitcher.CurrentStamina:F1}%, 投球數:{pitcher.PitchCount})... Result: {result.ResultType}");
+            }
             
             // 追蹤統計
             TrackAtBatStats(result);
@@ -349,6 +366,23 @@ public class GameSimulatorSerivce
             // 使用 PitcherManager 進行對決（會應用疲勞效果）
             var result = _simulator.SimulateAtBat(batter, pitcher, _pitcherManager);
             
+            // 如果有擊球出去（IsBallInPlay），進行守備判定
+            string updateMessage;
+            if (result.IsBallInPlay)
+            {
+                var defenders = _gameState.IsTopInning ? _gameState.HomeTeamRoster : _gameState.AwayTeamRoster;
+                var defenseResult = _defenseManager.ProcessDefense(result.Quality, batter, defenders, pitcher);
+                
+                // 更新結果
+                result.ResultType = defenseResult.FinalResult;
+                
+                updateMessage = $"Batter: {batter.Name} vs Pitcher: {pitcher.Name} (體力:{pitcher.CurrentStamina:F1}%, 投球數:{pitcher.PitchCount})\n{defenseResult.Description} -> {result.ResultType}";
+            }
+            else
+            {
+                updateMessage = $"Batter: {batter.Name} vs Pitcher: {pitcher.Name} (體力:{pitcher.CurrentStamina:F1}%, 投球數:{pitcher.PitchCount}), Result: {result.ResultType}";
+            }
+            
             // 追蹤統計
             TrackAtBatStats(result);
             
@@ -358,7 +392,7 @@ public class GameSimulatorSerivce
             ProcessAtBatResult(result, null); // No logs needed for SignalR, just state update
             AdvanceBatterIndex();
 
-            await SendGameUpdate($"Batter: {batter.Name} vs Pitcher: {pitcher.Name} (體力:{pitcher.CurrentStamina:F1}%, 投球數:{pitcher.PitchCount}), Result: {result.ResultType}");
+            await SendGameUpdate(updateMessage);
             
             // 檢查是否需要緊急換投
             var decision = _pitcherManager.ShouldChangePitcher(pitcher, _gameState);

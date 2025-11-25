@@ -132,15 +132,21 @@
 
 **已實作機制：**
 - ✅ 投打對決計算（`Simulator.SimulateAtBat()`）
+- ✅ 擊球品質判定（WeakGroundBall, GroundBall, LineDrive, FlyBall, DeepFlyBall, Bomb）✨ 新增
+- ✅ 守備系統（`DefenseManager.ProcessDefense()`）✨ 新增
+- ✅ 守備失誤機制（根據守備能力和難度判定）✨ 新增
 - ✅ 擊球結果：三振、出局、安打、二壘打、三壘打、全壘打
 - ✅ 保送判定（`CheckWalk()`）
 - ✅ 跑壘系統（`GameSimulatorSerivce` 處理壘包前進）
 - ✅ 計分系統
 - ✅ 9 局賽制
+- ✅ 投手疲勞系統（`PitcherManager`）✨ 新增
+- ✅ 自動換投機制 ✨ 新增
 
 **缺少機制：**
-- ❌ 守備成功率判定（目前假設完美守備）
-- ❌ 投手體力消耗與換投
+- ✅ 守備成功率判定（已完成 DefenseManager）
+- ✅ 守備失誤系統（已整合）
+- ❌ 投手體力消耗與換投（已實作投手疲勞系統，待完善）
 - ❌ AI 戰術決策（短打、盜壘、保送策略）
 - ❌ 延長賽
 - ❌ 詳細的 Box Score（打擊率、長打率等）
@@ -149,16 +155,17 @@
 **已實作檔案：**
 - `Services/Simulator/Simulator.cs` - 核心模擬邏輯
 - `Services/Simulator/GameSimulatorSerivce.cs` - 比賽流程控制
+- `Services/DefenseManager.cs` - 守備系統 ✨ 新增
+- `Services/PitcherManager.cs` - 投手疲勞管理 ✨ 新增
 - `Models/GameState.cs` - 比賽狀態管理
-- `Models/AtBatResult.cs` - 打席結果
+- `Models/AtBatResult.cs` - 打席結果（含擊球品質）✨ 更新
 - `Controllers/GameController.cs` - 比賽 API
 
 **缺少功能：**
 - 完整 Box Score 統計
-- 守備失誤系統
-- 投手疲勞與換投邏輯
 - AI 教練決策
 - 隨機種子管理
+- 延長賽機制
 
 ---
 
@@ -361,7 +368,7 @@ await connection.start();
 | Season Mode | 25% | 🟡 進行中 |
 | Team Management | 25% | 🟡 進行中 |
 | Player System | 40% | 🟡 進行中 |
-| Match Engine | 60% | 🟡 進行中 |
+| Match Engine | 85% | 🟢 接近完成 |
 | Statistics System | 70% | 🟢 接近完成 |
 | Save System | 75% | 🟢 接近完成 |
 | UI / UX | 5% | 🔴 未開始 |
@@ -370,28 +377,32 @@ await connection.start();
 ### 整體專案完成度
 
 ```
-█████████████░░░░░░░ 50%
+████████████████░░░░ 65%
 ```
 
-**已完成功能（50%）：**
+**已完成功能（65%）：**
 - ✅ 基本比賽模擬引擎
+- ✅ 守備系統與失誤機制 ✨ 新增
+- ✅ 投手疲勞與換投系統 ✨ 新增
+- ✅ 擊球品質判定系統 ✨ 新增
 - ✅ 資料庫架構（含統計表）
 - ✅ 賽季賽程生成
 - ✅ 球員與球隊資料模型（屬性已修正）
 - ✅ REST API 基礎
 - ✅ SignalR 即時通訊
-- ✅ 統計系統（打者/投手統計、排行榜）✨ 新增
+- ✅ 統計系統（打者/投手統計、排行榜）
 
-**進行中功能（30%）：**
+**進行中功能（20%）：**
 - ⚠️ 統計系統與比賽整合
-- ⚠️ 完整比賽邏輯（守備、疲勞、AI）
 - ⚠️ 球員成長與訓練系統
 - ⚠️ 陣容編輯功能
+- ⚠️ AI 戰術決策（短打、盜壘等）
 
-**未開始功能（20%）：**
+**未開始功能（15%）：**
 - ❌ 前端 UI（React）
 - ❌ 球隊排名系統
 - ❌ 年度獎項系統
+- ❌ 延長賽機制
 
 ---
 
@@ -399,15 +410,15 @@ await connection.start();
 
 ### 🔥 高優先級（核心遊戲體驗）
 
-1. **完善比賽模擬系統**
-   - 投手疲勞與換投
-   - 守備失誤機制
-   - AI 戰術決策
+1. ~~**完善比賽模擬系統**~~ ✅ **大部分完成**
+   - ✅ 投手疲勞與換投
+   - ✅ 守備失誤機制
+   - ⚠️ AI 戰術決策（待實作）
 
 2. **球員統計系統**
-   - 個人數據計算（AVG, ERA 等）
-   - 即時統計更新
-   - 歷史紀錄
+   - ✅ 個人數據計算（AVG, ERA 等）
+   - ⚠️ 即時統計更新（待整合）
+   - ✅ 歷史紀錄
 
 3. **陣容管理功能**
    - 打序編輯
@@ -470,7 +481,16 @@ await connection.start();
 
 ## 版本歷程
 
-- **v0.2** (目前版本) - 2025-11-24 ✨
+- **v0.3** (目前版本) - 2025-11-25 ✨
+  - ✅ 實作守備系統（DefenseManager）
+  - ✅ 擊球品質判定（BallQuality 枚舉）
+  - ✅ 守備失誤機制
+  - ✅ 投手疲勞系統（PitcherManager）
+  - ✅ 自動換投決策
+  - ✅ 調整投打對決機率（提高擊球率，減少三振）
+  - ✅ 整合守備系統至比賽模擬流程
+
+- **v0.2** - 2025-11-24 ✨
   - ✅ 修正球員屬性命名（Contact, Vision, Breaking）
   - ✅ 新增統計系統（HittingStats, PitchingStats）
   - ✅ 新增統計服務與 API

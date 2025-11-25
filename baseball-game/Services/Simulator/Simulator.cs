@@ -102,7 +102,7 @@ public class Simulator
     }
     
     /// <summary>
-    /// 決定打擊結果（根據擊球品質判定）
+    /// 決定打擊結果（僅判定擊球品質，守備結果由 DefenseManager 處理）
     /// </summary>
     private AtBatResult DetermineHitResult(Player batter, Player pitcher)
     {
@@ -116,7 +116,7 @@ public class Simulator
         
         double score = attack - defense + RandomNoise() * 3;
         
-        // 先判定擊球品質
+        // 判定擊球品質（守備系統將根據此品質決定最終結果）
         result.Quality = score switch
         {
             < -20 => BallQuality.WeakGroundBall,  // 軟弱滾地球
@@ -127,47 +127,10 @@ public class Simulator
             _ => BallQuality.Bomb                  // 強力長打
         };
         
-        // 暫時根據擊球品質直接轉換為結果（未來由守備系統處理）
-        result.ResultType = result.Quality switch
-        {
-            BallQuality.WeakGroundBall => AtBatType.Out,     // 軟弱滾地球通常被接殺
-            BallQuality.GroundBall => _random.NextDouble() < 0.7 ? AtBatType.Out : AtBatType.Single,  // 滾地球70%出局
-            BallQuality.LineDrive => _random.NextDouble() < 0.3 ? AtBatType.Out : AtBatType.Single,   // 平飛球30%被接殺
-            BallQuality.FlyBall => _random.NextDouble() < 0.6 ? AtBatType.Out : AtBatType.Single,     // 飛球60%被接殺
-            BallQuality.DeepFlyBall => DetermineExtraBaseHit(batter.Power),  // 深遠飛球可能形成長打
-            BallQuality.Bomb => DetermineExtraBaseHit(batter.Power, true),   // 強力擊球幾乎確定安打
-            _ => AtBatType.Out
-        };
+        // 暫時設為 Out，實際結果由守備系統決定
+        result.ResultType = AtBatType.Out;
         
         return result;
-    }
-    
-    /// <summary>
-    /// 判定長打類型
-    /// </summary>
-    private AtBatType DetermineExtraBaseHit(int power, bool isBomb = false)
-    {
-        double rand = _random.NextDouble();
-        double powerFactor = power / 100.0;
-        
-        if (isBomb)
-        {
-            // 強力擊球：更高機率形成全壘打或長打
-            double homeRunThreshold = 0.4 + powerFactor * 0.3;
-            if (rand < homeRunThreshold) return AtBatType.HomeRun;
-            if (rand < 0.7) return AtBatType.Triple;
-            if (rand < 0.9) return AtBatType.Double;
-            return AtBatType.Single;
-        }
-        else
-        {
-            // 深遠飛球：較低機率全壘打
-            double homeRunThreshold = 0.15 + powerFactor * 0.15;
-            if (rand < homeRunThreshold) return AtBatType.HomeRun;
-            if (rand < 0.35) return AtBatType.Triple;
-            if (rand < 0.65) return AtBatType.Double;
-            return AtBatType.Single;
-        }
     }
     
     /// <summary>
