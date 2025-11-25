@@ -1,0 +1,503 @@
+{
+	"info": {
+		"_postman_id": "baseball-game-api-collection",
+		"name": "Baseball Game API",
+		"description": "實況野球風格賽季制棒球遊戲 API 測試集合\n\n**建議測試順序：**\n1. Reset Database - 重置資料庫（會建立測試用的 Season: 2025-1 和範例統計資料）\n2. Get All Teams - 確認球隊資料\n3. Get Season by ID (2025-1) - 測試賽季查詢\n4. Get Hitting Leaders (2025-1) - 測試統計查詢\n5. Simulate Game - 模擬比賽\n\n**注意事項：**\n- 所有 Season/Statistics API 都需要先執行 Reset Database\n- SeasonId 格式為 'YYYY-N' (例如: 2025-1)\n- PlayerId 請參考資料庫中的實際 ID",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Database",
+			"item": [
+				{
+					"name": "Reset Database",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/game/reset-db",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"game",
+								"reset-db"
+							]
+						},
+						"description": "重置資料庫並載入種子資料（包含球隊、球員、投手）"
+					},
+					"response": []
+				}
+			],
+			"description": "資料庫管理相關 API"
+		},
+		{
+			"name": "Game",
+			"item": [
+				{
+					"name": "Simulate Game",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/game/simulate",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"game",
+								"simulate"
+							]
+						},
+						"description": "模擬一場完整比賽（包含投手疲勞與換投邏輯）"
+					},
+					"response": []
+				}
+			],
+			"description": "比賽模擬相關 API"
+		},
+		{
+			"name": "Teams",
+			"item": [
+				{
+					"name": "Get All Teams",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/team",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"team"
+							]
+						},
+						"description": "取得所有球隊列表"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Team by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/team/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"team",
+								"1"
+							]
+						},
+						"description": "取得指定 ID 的球隊資訊"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Team Roster",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/team/1/roster",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"team",
+								"1",
+								"roster"
+							]
+						},
+						"description": "取得指定球隊的所有球員名單（包含打者與投手）"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Team",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"New Team\",\n  \"abbreviation\": \"NEW\",\n  \"color\": \"#00FF00\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/team",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"team"
+							]
+						},
+						"description": "新增球隊（最多6隊）"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Team",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Team Name\",\n  \"abbreviation\": \"UPD\",\n  \"color\": \"#FF0000\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/team/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"team",
+								"1"
+							]
+						},
+						"description": "更新球隊資訊"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Team",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/team/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"team",
+								"1"
+							]
+						},
+						"description": "刪除球隊及其所有球員"
+					},
+					"response": []
+				},
+				{
+					"name": "Add Player to Team",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"New Player\",\n  \"type\": 0,\n  \"role\": 0,\n  \"contact\": 50,\n  \"power\": 60,\n  \"vision\": 55,\n  \"speed\": 45,\n  \"baseRunning\": 40,\n  \"fielding\": 50,\n  \"arm\": 45,\n  \"position\": 0,\n  \"stamina\": 30,\n  \"control\": 20,\n  \"velocity\": 15,\n  \"breaking\": 14,\n  \"experience\": 0\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/team/1/players",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"team",
+								"1",
+								"players"
+							]
+						},
+						"description": "新增球員到指定球隊（每隊最多30人）\\n\\nType: 0=打者, 1=投手\\nRole: 0=先發, 1=中繼, 2=佈局, 3=終結者"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Player",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Player\",\n  \"type\": 0,\n  \"role\": 0,\n  \"contact\": 60,\n  \"power\": 70,\n  \"vision\": 65,\n  \"speed\": 50,\n  \"baseRunning\": 45,\n  \"fielding\": 55,\n  \"arm\": 50,\n  \"position\": 0,\n  \"stamina\": 30,\n  \"control\": 20,\n  \"velocity\": 15,\n  \"breaking\": 14,\n  \"experience\": 100\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/team/1/players/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"team",
+								"1",
+								"players",
+								"1"
+							]
+						},
+						"description": "更新球員資訊"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Player",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/team/1/players/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"team",
+								"1",
+								"players",
+								"1"
+							]
+						},
+						"description": "刪除球員"
+					},
+					"response": []
+				}
+			],
+			"description": "球隊管理相關 API"
+		},
+		{
+			"name": "Season",
+			"item": [
+				{
+					"name": "Start New Season",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "2025"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/season",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"season"
+							]
+						},
+						"description": "開始新賽季並生成完整賽程"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Season by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/season/2025-1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"season",
+								"2025-1"
+							]
+						},
+						"description": "取得指定賽季資訊"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Season Schedule",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/season/2025-1/schedule",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"season",
+								"2025-1",
+								"schedule"
+							]
+						},
+						"description": "取得賽季完整賽程表"
+					},
+					"response": []
+				},
+				{
+					"name": "Regenerate Season Schedule",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/season/2025-1/regenerate-schedule",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"season",
+								"2025-1",
+								"regenerate-schedule"
+							]
+						},
+						"description": "重新生成賽季賽程（當球隊數量變更時使用）"
+					},
+					"response": []
+				}
+			],
+			"description": "賽季管理相關 API"
+		},
+		{
+			"name": "Statistics",
+			"item": [
+				{
+					"name": "Get Hitting Leaders",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/statistics/hitting/leaders/2025-1?top=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"statistics",
+								"hitting",
+								"leaders",
+								"2025-1"
+							],
+							"query": [
+								{
+									"key": "top",
+									"value": "10",
+									"description": "排行榜顯示人數（預設10）"
+								}
+							]
+						},
+						"description": "取得賽季打擊排行榜（AVG, HR, RBI, OPS）"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Pitching Leaders",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/statistics/pitching/leaders/2025-1?top=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"statistics",
+								"pitching",
+								"leaders",
+								"2025-1"
+							],
+							"query": [
+								{
+									"key": "top",
+									"value": "10",
+									"description": "排行榜顯示人數（預設10）"
+								}
+							]
+						},
+						"description": "取得賽季投手排行榜（ERA, WHIP, K/9, W-L）"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Player Hitting Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/statistics/hitting/player/1/season/2025-1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"statistics",
+								"hitting",
+								"player",
+								"1",
+								"season",
+								"2025-1"
+							]
+						},
+						"description": "取得指定球員的打擊統計（依賽季）"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Player Pitching Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/statistics/pitching/player/10/season/2025-1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"statistics",
+								"pitching",
+								"player",
+								"10",
+								"season",
+								"2025-1"
+							]
+						},
+						"description": "取得指定投手的投球統計（依賽季）"
+					},
+					"response": []
+				}
+			],
+			"description": "統計數據相關 API"
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5293",
+			"type": "string"
+		}
+	]
+}

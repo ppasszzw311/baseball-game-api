@@ -14,18 +14,24 @@ public class GameSimulatorSerivce
     private readonly IHubContext<GameHub> _hubContext;
     private readonly GameDbContext _dbContext;
     private readonly PitcherManager _pitcherManager;
+    private readonly StatisticsService _statsService;
     private GameState _gameState;
+    
+    // 比賽統計追蹤
+    private Dictionary<int, GameHittingStats> _hittingStats = new();
+    private Dictionary<int, GamePitchingStats> _pitchingStats = new();
     
     private bool _isPaused = false;
     private bool _isSimulationRunning = false;
     private CancellationTokenSource? _cancellationTokenSource;
     private readonly IHostApplicationLifetime _appLifetime;
 
-    public GameSimulatorSerivce(PlayerSerivce playerSerivce, IHubContext<GameHub> hubContext, GameDbContext dbContext, IHostApplicationLifetime appLifetime)
+    public GameSimulatorSerivce(PlayerSerivce playerSerivce, IHubContext<GameHub> hubContext, GameDbContext dbContext, StatisticsService statsService, IHostApplicationLifetime appLifetime)
     {
         _playerSerivce = playerSerivce;
         _hubContext = hubContext;
         _dbContext = dbContext;
+        _statsService = statsService;
         _simulator = new Simulator();
         _pitcherManager = new PitcherManager();
         _gameState = new GameState();
@@ -39,7 +45,7 @@ public class GameSimulatorSerivce
     }
 
     // --- API Mode: Full Simulation ---
-    public GameResult SimulateFullGame()
+    public async Task<GameResult> SimulateFullGame()
     {
         InitializeGame();
         var logs = new List<string>();
@@ -72,6 +78,10 @@ public class GameSimulatorSerivce
         };
 
         SaveGameResult(result);
+        
+        // 更新球員統計
+        await UpdateGameStatistics("2025-1"); // TODO: 從實際賽季 ID 取得
+        
         return result;
     }
 
@@ -154,6 +164,9 @@ public class GameSimulatorSerivce
     private void InitializeGame()
     {
         _gameState = new GameState(); // Reset state
+        _hittingStats = new Dictionary<int, GameHittingStats>(); // Reset hitting stats
+        _pitchingStats = new Dictionary<int, GamePitchingStats>(); // Reset pitching stats
+        
         _gameState.AwayTeamRoster = _playerSerivce.CreateTeam(1, "Away");
         _gameState.HomeTeamRoster = _playerSerivce.CreateTeam(2, "Home");
         _gameState.AwayTeamPitcher = _playerSerivce.GetPitcherForTeam(1);
@@ -166,6 +179,13 @@ public class GameSimulatorSerivce
         // 初始化牛棚（載入後援投手）
         _gameState.AwayTeamBullpen = GetBullpenPitchers(_gameState.AwayTeamRoster);
         _gameState.HomeTeamBullpen = GetBullpenPitchers(_gameState.HomeTeamRoster);
+        
+        Console.WriteLine($"[Debug] Away Team Roster: {_gameState.AwayTeamRoster.Count} players");
+        Console.WriteLine($"[Debug] Away Team Bullpen: {_gameState.AwayTeamBullpen.Count} pitchers");
+        Console.WriteLine($"[Debug] Away Bullpen: {string.Join(", ", _gameState.AwayTeamBullpen.Select(p => $"{p.Name}(Role:{p.Role})"))}");
+        Console.WriteLine($"[Debug] Home Team Roster: {_gameState.HomeTeamRoster.Count} players");
+        Console.WriteLine($"[Debug] Home Team Bullpen: {_gameState.HomeTeamBullpen.Count} pitchers");
+        Console.WriteLine($"[Debug] Home Bullpen: {string.Join(", ", _gameState.HomeTeamBullpen.Select(p => $"{p.Name}(Role:{p.Role})"))}");
     }
     
     private List<Player> GetBullpenPitchers(List<Player> roster)
@@ -228,6 +248,9 @@ public class GameSimulatorSerivce
             var result = _simulator.SimulateAtBat(batter, pitcher, _pitcherManager);
             
             logs.Add($"Batter {batter.Name} vs Pitcher {pitcher.Name} (體力:{pitcher.CurrentStamina:F1}%, 投球數:{pitcher.PitchCount})... Result: {result.ResultType}");
+            
+            // 追蹤統計
+            TrackAtBatStats(result);
             
             // 更新投手體力
             _pitcherManager.UpdateStamina(pitcher, result, basesOccupied);
@@ -325,6 +348,9 @@ public class GameSimulatorSerivce
             
             // 使用 PitcherManager 進行對決（會應用疲勞效果）
             var result = _simulator.SimulateAtBat(batter, pitcher, _pitcherManager);
+            
+            // 追蹤統計
+            TrackAtBatStats(result);
             
             // 更新投手體力
             _pitcherManager.UpdateStamina(pitcher, result, basesOccupied);
@@ -433,11 +459,15 @@ public class GameSimulatorSerivce
 
     private void ProcessAtBatResult(AtBatResult result, List<string>? logs)
     {
+        var currentPitcher = _gameState.IsTopInning ? _gameState.HomeTeamPitcher : _gameState.AwayTeamPitcher;
+        
         switch (result.ResultType)
         {
             case AtBatType.StrikeOut:
             case AtBatType.Out:
                 _gameState.Outs++;
+                // 追蹤出局數（用於計算投手局數）
+                TrackOut(currentPitcher);
                 break;
             case AtBatType.Walk:
                 AdvanceRunners(1, true, result.Hitter, logs);
@@ -538,5 +568,109 @@ public class GameSimulatorSerivce
 
         await _hubContext.Clients.All.SendAsync("ReceiveGameUpdate", update);
     }
+    
+    // 追蹤打席結果統計
+    private void TrackAtBatStats(AtBatResult result)
+    {
+        int batterId = result.Hitter.PlayerId;
+        int pitcherId = result.Pitcher.PlayerId;
+        
+        // 初始化打者統計
+        if (!_hittingStats.ContainsKey(batterId))
+        {
+            _hittingStats[batterId] = new GameHittingStats { PlayerId = batterId };
+        }
+        
+        // 初始化投手統計
+        if (!_pitchingStats.ContainsKey(pitcherId))
+        {
+            _pitchingStats[pitcherId] = new GamePitchingStats { PlayerId = pitcherId };
+        }
+        
+        var hitterStats = _hittingStats[batterId];
+        var pitcherStats = _pitchingStats[pitcherId];
+        
+        // 更新打者統計
+        hitterStats.PlateAppearances++;
+        
+        if (result.ResultType != AtBatType.Walk)
+        {
+            hitterStats.AtBats++;
+        }
+        
+        switch (result.ResultType)
+        {
+            case AtBatType.Single:
+                hitterStats.Hits++;
+                hitterStats.Singles++;
+                pitcherStats.HitsAllowed++;
+                break;
+            case AtBatType.Double:
+                hitterStats.Hits++;
+                hitterStats.Doubles++;
+                pitcherStats.HitsAllowed++;
+                break;
+            case AtBatType.Triple:
+                hitterStats.Hits++;
+                hitterStats.Triples++;
+                pitcherStats.HitsAllowed++;
+                break;
+            case AtBatType.HomeRun:
+                hitterStats.Hits++;
+                hitterStats.HomeRuns++;
+                hitterStats.Runs++;
+                hitterStats.RBI++;
+                pitcherStats.HitsAllowed++;
+                pitcherStats.HomeRunsAllowed++;
+                pitcherStats.RunsAllowed++;
+                pitcherStats.EarnedRuns++;
+                break;
+            case AtBatType.Walk:
+                hitterStats.Walks++;
+                pitcherStats.WalksAllowed++;
+                break;
+            case AtBatType.StrikeOut:
+                hitterStats.Strikeouts++;
+                pitcherStats.Strikeouts++;
+                break;
+        }
+        
+        // 更新投手投球數
+        pitcherStats.BattersFaced++;
+        
+        // 更新得分和打點（需要在 ProcessAtBatResult 中呼叫額外的方法）
+        if (result.RunScore > 0)
+        {
+            hitterStats.RBI += result.RunScore;
+            pitcherStats.RunsAllowed += result.RunScore;
+            pitcherStats.EarnedRuns += result.RunScore;
+        }
+    }
+    
+    // 更新比賽統計到資料庫
+    private async Task UpdateGameStatistics(string seasonId)
+    {
+        foreach (var (playerId, stats) in _hittingStats)
+        {
+            await _statsService.BatchUpdateHittingStats(playerId, seasonId, stats);
+        }
+        
+        foreach (var (playerId, stats) in _pitchingStats)
+        {
+            await _statsService.BatchUpdatePitchingStats(playerId, seasonId, stats);
+        }
+    }
+    
+    // 追蹤出局數（用於投手局數計算）
+    private void TrackOut(Player pitcher)
+    {
+        int pitcherId = pitcher.PlayerId;
+        
+        if (!_pitchingStats.ContainsKey(pitcherId))
+        {
+            _pitchingStats[pitcherId] = new GamePitchingStats { PlayerId = pitcherId };
+        }
+        
+        _pitchingStats[pitcherId].OutsRecorded++;
+    }
 }
-

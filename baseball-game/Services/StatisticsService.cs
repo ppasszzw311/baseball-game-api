@@ -259,4 +259,82 @@ public class StatisticsService
             .Include(s => s.Player)
             .FirstOrDefaultAsync(s => s.PlayerId == playerId && s.SeasonId == seasonId);
     }
+    
+    /// <summary>
+    /// 批量更新打者統計（用於比賽結束後）
+    /// </summary>
+    public async Task BatchUpdateHittingStats(int playerId, string seasonId, GameHittingStats gameStats)
+    {
+        var stats = await GetOrCreateHittingStats(playerId, seasonId);
+        
+        stats.PlateAppearances += gameStats.PlateAppearances;
+        stats.AtBats += gameStats.AtBats;
+        stats.Hits += gameStats.Hits;
+        stats.Singles += gameStats.Singles;
+        stats.Doubles += gameStats.Doubles;
+        stats.Triples += gameStats.Triples;
+        stats.HomeRuns += gameStats.HomeRuns;
+        stats.Runs += gameStats.Runs;
+        stats.RBI += gameStats.RBI;
+        stats.Walks += gameStats.Walks;
+        stats.Strikeouts += gameStats.Strikeouts;
+        
+        stats.CalculateStats();
+        await _context.SaveChangesAsync();
+    }
+    
+    /// <summary>
+    /// 批量更新投手統計（用於比賽結束後）
+    /// </summary>
+    public async Task BatchUpdatePitchingStats(int playerId, string seasonId, GamePitchingStats gameStats)
+    {
+        var stats = await GetOrCreatePitchingStats(playerId, seasonId);
+        
+        stats.BattersFaced += gameStats.BattersFaced;
+        stats.HitsAllowed += gameStats.HitsAllowed;
+        stats.RunsAllowed += gameStats.RunsAllowed;
+        stats.EarnedRuns += gameStats.EarnedRuns;
+        stats.HomeRunsAllowed += gameStats.HomeRunsAllowed;
+        stats.WalksAllowed += gameStats.WalksAllowed;
+        stats.Strikeouts += gameStats.Strikeouts;
+        
+        // 計算投球局數（使用出局數除以3）
+        stats.InningsPitched += gameStats.OutsRecorded / 3.0;
+        
+        // 更新出賽數（每場比賽至少算一次）
+        stats.GamesPlayed++;
+        
+        stats.CalculateStats();
+        await _context.SaveChangesAsync();
+    }
+}
+
+// 比賽統計追蹤類別
+public class GameHittingStats
+{
+    public int PlayerId { get; set; }
+    public int PlateAppearances { get; set; }
+    public int AtBats { get; set; }
+    public int Hits { get; set; }
+    public int Singles { get; set; }
+    public int Doubles { get; set; }
+    public int Triples { get; set; }
+    public int HomeRuns { get; set; }
+    public int Runs { get; set; }
+    public int RBI { get; set; }
+    public int Walks { get; set; }
+    public int Strikeouts { get; set; }
+}
+
+public class GamePitchingStats
+{
+    public int PlayerId { get; set; }
+    public int BattersFaced { get; set; }
+    public int HitsAllowed { get; set; }
+    public int RunsAllowed { get; set; }
+    public int EarnedRuns { get; set; }
+    public int HomeRunsAllowed { get; set; }
+    public int WalksAllowed { get; set; }
+    public int Strikeouts { get; set; }
+    public int OutsRecorded { get; set; }  // 用於計算局數
 }

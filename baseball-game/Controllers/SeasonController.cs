@@ -43,4 +43,23 @@ public class SeasonController : ControllerBase
             .ToListAsync();
         return Ok(schedule);
     }
+    
+    [HttpPost("{id}/regenerate-schedule")]
+    public async Task<ActionResult<List<Schedule>>> RegenerateSchedule(string id)
+    {
+        var season = await _context.Seasons.FindAsync(id);
+        if (season == null) return NotFound();
+        
+        var oldSchedule = await _context.Schedules
+            .Where(s => s.SeasonId == id)
+            .ToListAsync();
+        _context.Schedules.RemoveRange(oldSchedule);
+        
+        var newSchedule = _seasonService.GenerateSchedule(id);
+        _context.Schedules.AddRange(newSchedule);
+        
+        await _context.SaveChangesAsync();
+        
+        return Ok(newSchedule);
+    }
 }

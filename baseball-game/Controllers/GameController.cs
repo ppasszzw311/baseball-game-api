@@ -21,9 +21,9 @@ public class GameController : ControllerBase
     }
 
     [HttpPost("simulate")]
-    public ActionResult<GameResult> SimulateGame()
+    public async Task<ActionResult<GameResult>> SimulateGame()
     {
-        var result = _gameService.SimulateFullGame();
+        var result = await _gameService.SimulateFullGame();
         return Ok(result);
     }
 

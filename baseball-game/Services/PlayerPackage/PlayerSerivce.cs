@@ -14,9 +14,9 @@ public class PlayerSerivce
 
     public List<Player> CreateTeam(int teamId, string teamName)
     {
-        // Try to fetch from DB
+        // Try to fetch from DB - 取得所有球員（打者和投手）
         var roster = _context.Players
-            .Where(p => p.TeamId == teamId && p.Type == 0) // 0 for Hitter
+            .Where(p => p.TeamId == teamId)
             .ToList();
 
         if (roster.Any())
@@ -71,11 +71,11 @@ public class PlayerSerivce
         return player;
     }
     
-    // Helper method to get a pitcher for a specific team from DB
+    // Helper method to get a starter pitcher for a specific team from DB
     public Player GetPitcherForTeam(int teamId)
     {
          var pitcher = _context.Players
-            .FirstOrDefault(p => p.TeamId == teamId && p.Type == 1);
+            .FirstOrDefault(p => p.TeamId == teamId && p.Type == 1 && p.Role == 0); // Role == 0 for starter
         
         if (pitcher != null) return pitcher;
 

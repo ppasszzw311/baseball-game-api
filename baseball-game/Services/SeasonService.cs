@@ -22,10 +22,18 @@ public class SeasonService
         return season;
     }
 
-    private void GenerateSchedule(string seasonId)
+    public List<Schedule> GenerateSchedule(string seasonId)
+    {
+        var schedules = GenerateScheduleList(seasonId);
+        _context.Schedules.AddRange(schedules);
+        _context.SaveChanges();
+        return _context.Schedules.Where(s => s.SeasonId == seasonId).ToList();
+    }
+
+    public List<Schedule> GenerateScheduleList(string seasonId)
     {
         var teams = _context.Teams.ToList();
-        if (teams.Count < 2) return;
+        if (teams.Count < 2) return new List<Schedule>();
 
         // Simple Round Robin: Each team plays every other team once
         // For a real season, we'd want more games.
@@ -58,5 +66,6 @@ public class SeasonService
             }
         }
         _context.SaveChanges();
+        return _context.Schedules.Where(s => s.SeasonId == seasonId).ToList();
     }
 }
